@@ -5,9 +5,13 @@ from gi.repository import Gtk
 from gi.repository import GLib
 from gi.repository import Gdk
 
-from timers.timer import Timer,fromArr2Time,fromStr2Time
+from datetime import datetime, timedelta
+
+from re import match
 
 # Here follow the definitions of the classes for the two windows
+
+delta = timedelta(seconds=1) # This is the increment of countdown
 
 class AlarmWindow(Gtk.Window):
 
@@ -15,12 +19,11 @@ class AlarmWindow(Gtk.Window):
 
       Gtk.Window.__init__(self,title='Alarm')
       self.hbox = Gtk.HBox(spacing=6)
+      self.count = timedelta() # Set the timer to 0
+      self.endCount = timedelta(seconds=180) # count will increment of a sec till it reaches endCount
+      self.timer = -1 # an id to reference the GLib timeout
 
-      self.__default_countdown__ = Timer(hour=0,min=1,sec=0) # hidden member
-      self.__timeoutref__ = ''
-
-      self.countdown = self.__default_countdown__.copy() 
-      self.label = Gtk.Label('- '+str(self.countdown))
+      self.label = Gtk.Label('- '+str(self.endCount - self.count)[2:])
       self.buttonBox = Gtk.VBox()
       self.setButton = Gtk.Button('Set')
       self.resetButton = Gtk.Button('Reset')
@@ -52,51 +55,41 @@ class AlarmWindow(Gtk.Window):
    def reset(self): # Reset the counter
 
       self.stop()
-      self.countdown = self.__default_countdown__.copy()
+      self.count = timedelta()
       self.updateCountdown()
       return True
 
    def start(self): # Start countdown
-      
-      if self.countdown == Timer(): # If the countdown is on zero we do nothing
-         return False 
-      # otherwise ...
-      if self.__timeoutref__ != '': # If there's a countdown already active.
-         return False
-      # otherwise
-      self.show_all()
-      self.updateCountdown()
-      self.__timeoutref__ = GLib.timeout_add_seconds(1,self.updateCountdown)      
-      return True
+
+      if self.timer < 0: # If the countdown is not already started we start it
+         self.updateCountdown()
+         self.timer = GLib.timeout_add_seconds(1,self.updateCountdown)      
+      return True # otherwise we do nothing
 
    def stop(self): # stop the CountDown
-      
-      if self.__timeoutref__ != '':
-         GLib.source_remove(self.__timeoutref__)
-      self.__timeoutref__ = ''
+      if self.timer >= 0:
+         if GLib.source_remove(self.timer): # Stop the counter
+            self.timer = -1 # and set the counter to the id of a non valid id
       return True
 
    def updateCountdown(self):
 
-      flashTime = Timer(min=1,sec=0) # Time when start to flashing
-      finish = Timer() # Time is end
-      
-      self.label.set_text('- '+str(self.countdown))
-      self.countdown.dec() # Decrement the countdown
-      if self.countdown == finish: # if countdown is zero, we stop cycling
-         return False # and stop the countdown
-   
+      self.label.set_text('- '+str(self.endCount - self.count)[2:])
+      self.count = self.count + delta # increment the counter of delta=1sec
+      if self.count > self.endCount:
+         self.timer = -1 # If we arrive to endCount secs the counter stops  
+         return False    # and we the destroy the reference to the timer, which is non valid
       return True # Otherwise we countinue to cycle
 
    def setDialogSet(self): # This method open a dialog box
-                       # that ask for the default countdown
+                           # that ask for the default countdown
       dialog = Gtk.Dialog()
       contentArea = dialog.get_content_area() # This is the part of dialog 
                                                # that will contain label and entries
       actionArea = dialog.get_action_area() # This instead is the area that contain buttons
 
       dialog.button = Gtk.Button('Set') # Button to setting the countdown
-      dialog.label = Gtk.Label('Inserire un countdown nella forma HH:MM:SS')
+      dialog.label = Gtk.Label('Inserire un countdown nella forma MM:SS')
       dialog.entry = Gtk.Entry()
 
       dialog.button.connect('clicked',lambda x: self.setTimer(dialog))
@@ -109,7 +102,10 @@ class AlarmWindow(Gtk.Window):
 
    def setTimer(self, dialog):
       
-      self.__default_countdown__ = fromStr2Time(dialog.entry.get_text(),[0,1,0]) # As default time we take 00:01:00 [0,1,0]
+      if match('^[0-9]{2}:[0-9]{2}$',dialog.entry.get_text()) == None:
+         print('Errore il formato di tempo inserito non e` corretto')
+      else:
+         self.endCount = datetime.strptime('00:'+dialog.entry.get_text(),'%H:%M:%S')-datetime.strptime('00:00:00','%H:%M:%S')
       self.reset()
       dialog.destroy() # Once we setted the timer we don't need anymore 
                        # the dialog window

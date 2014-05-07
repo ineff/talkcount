@@ -4,8 +4,6 @@ from gi.repository import Gtk
 from gi.repository import GLib
 from gi.repository import Gdk
 
-from timers.timer import Timer
-
 from windows.windows import AlarmWindow
 
 window = AlarmWindow()
@@ -16,7 +14,7 @@ screen = display.get_default_screen()
 
 provider.load_from_data(b"""
 #CountDown {
-font-size: 60;
+font-size: 60px;
 }
 """)
 
