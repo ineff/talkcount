@@ -22,14 +22,12 @@ class AlarmWindow(Gtk.Window):
       self.count = timedelta() # Set the timer to 0
       self.endCount = timedelta(seconds=180) # count will increment of a sec till it reaches endCount
       self.timer = -1 # an id to reference the GLib timeout
-
       self.label = Gtk.Label('- '+str(self.endCount - self.count)[2:])
       self.buttonBox = Gtk.VBox()
       self.setButton = Gtk.Button('Set')
       self.resetButton = Gtk.Button('Reset')
       self.startButton = Gtk.Button('Start')
-
-      self.label.set_name('CountDown')
+      self.label.set_name('CountDown') # We set a name for the label for change style properties
 
       # Connect the signals of the buttons to methods to call
 
@@ -37,18 +35,22 @@ class AlarmWindow(Gtk.Window):
       self.resetButton.connect('clicked', lambda void: self.reset())
       self.setButton.connect('clicked', lambda void: self.setDialogSet())
 
+      # Insert the buttons in a box
+
       self.buttonBox.pack_start(self.setButton, True, True, 0)
       self.buttonBox.pack_start(self.resetButton, True, True, 0)
       self.buttonBox.pack_start(self.startButton, True, True, 0)
 
+      # Insert the label (the countdown) and the button box in a box
+
       self.hbox.pack_start(self.label, True, True, 0)
       self.hbox.pack_start(self.buttonBox, True, True, 0)
       self.set_name('Alarm')
+
+      # Insert the box with everything in the window
       self.add(self.hbox)
 
       self.connect('delete-event', Gtk.main_quit)
-      
-
       self.show_all()
 
 
@@ -78,6 +80,7 @@ class AlarmWindow(Gtk.Window):
       self.count = self.count + delta # increment the counter of delta=1sec
       if self.count > self.endCount:
          self.timer = -1 # If we arrive to endCount secs the counter stops  
+         self.count = timedelta() # reset the count to 0
          return False    # and we the destroy the reference to the timer, which is non valid
       return True # Otherwise we countinue to cycle
 
